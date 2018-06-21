@@ -27,15 +27,18 @@ class SetupTestConfigComponent {
 SetupTestConfigComponent.restoreDefaultConfig = function () {
 
   SetupTestConfigComponent.defaultConfig = {
-    models: [],
     connections: {
-      test: {
+      mysql: {
+        database: 'stringstack_sequelize_test',
         username: 'root',
         password: 'test-password',
         options: {
+          dialect: 'mysql',
           host: 'localhost',
           port: 13306
-        }
+        },
+        setupDir: null,
+        applyMigrations: false
       }
     }
   };

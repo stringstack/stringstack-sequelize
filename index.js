@@ -2,10 +2,12 @@
 
 const __ = require( 'doublescore' );
 const async = require( 'async' );
+const fs = require( 'fs' );
+const Path = require( 'path' );
 const Sequelize = require( 'sequelize' );
+const Umzug = require( 'umzug' );
 
 let defaultConfig = {
-  models: [],
   connections: {}
 };
 
@@ -19,18 +21,9 @@ let defaultConnectionConfig = {
     dialect: 'mysql',
     operatorsAliases: false, // default value in sequelize is true, which is also deprecated now... silly I know.
     logging: false // another weird default override
-  }
-};
-
-let defaultModelConfig = {
-  dir: null,
-  connection: null,
-  password: null,
-  region: null,
-  database: null,
-  schema: null,
-  warehouse: null,
-  role: null
+  },
+  setupDir: null,
+  applyMigrations: false
 };
 
 class SequelizeComponent {
@@ -39,21 +32,29 @@ class SequelizeComponent {
 
     this._nconf = deps.get( 'config' );
 
+    this._connectionModelsInitialized = {};
     this._config = null;
-
     this._connectionPool = {};
 
   }
 
   init( done ) {
 
+    if ( this._config ) {
+      return done( new Error( 'already initialized' ) );
+    }
+
     this._config = __( defaultConfig ).mixin( this._nconf.get( 'stringstack:sequelize' ) );
 
-    done();
+    this._initAllConnections( done );
 
   }
 
   dinit( done ) {
+
+    if ( !this._config ) {
+      return done( new Error( 'already d-initialized' ) );
+    }
 
     this._config = null;
 
@@ -95,15 +96,13 @@ class SequelizeComponent {
 
     let config = __( defaultConnectionConfig ).mixin( this._config.connections[ connectionName ] );
 
-    let { database, username, password, ...remaining } = config;
-    let options = remaining.options || {};
+    let { database, username, password, options } = config;
 
     let sequelize = new Sequelize( database || null, username || null, password || null, options || {} );
 
     async.waterfall( [
       ( done ) => {
 
-        // console.log( 'DEBUG 100' );
         sequelize
           .authenticate()
           .then( () => {
@@ -114,12 +113,140 @@ class SequelizeComponent {
       },
       ( done ) => {
 
-        // console.log( 'DEBUG 101' );
         this._connectionPool[ connectionName ] = sequelize;
         done( null, sequelize );
 
       }
     ], done );
+
+  }
+
+  _initAllConnections( done ) {
+
+    async.eachOfSeries( this._config.connections, ( connectionConfig, connectionName, done ) => {
+      this._initConnection( connectionName, connectionConfig, done );
+    }, done );
+
+  }
+
+  _initConnection( connectionName, connectionConfig, done ) {
+
+    if ( this._connectionModelsInitialized[ connectionName ] ) {
+      return done();
+    }
+    this._connectionModelsInitialized[ connectionName ] = true;
+
+    connectionConfig = this._normalizeConnectionConfig( connectionConfig );
+
+    if ( typeof connectionConfig.setupDir !== 'string' || connectionConfig.setupDir.trim().length < 1 ) {
+      return done();
+    }
+
+    let setupDir = connectionConfig.setupDir.trim();
+    if ( setupDir.match( /^\./ ) ) {
+      setupDir = Path.join( process.cwd(), setupDir );
+    }
+    setupDir = Path.normalize( setupDir );
+
+    async.waterfall( [
+      ( done ) => {
+        this.getConnection( connectionName, done );
+      },
+      ( sequelize, done ) => {
+
+        if ( connectionConfig.applyMigrations ) {
+          this._initMigrations( setupDir, sequelize, done );
+        } else {
+          setImmediate( done, null, sequelize );
+        }
+
+      },
+      ( sequelize, done ) => {
+        this._initModels( setupDir, sequelize, done );
+      }
+    ], done );
+
+  }
+
+  _initMigrations( setupDir, sequelize, done ) {
+
+    let umzug = new Umzug( {
+      storage: 'sequelize',
+      storageOptions: {
+        sequelize: sequelize,
+        tableName: 'SequelizeMeta'
+      },
+      migrations: {
+        path: Path.join( setupDir, 'migrations' ),
+        params: [ sequelize, Sequelize ],
+      },
+      logging: function () {
+        // TODO hook this to logging harness
+      }
+    } );
+
+    umzug.up()
+      .then( () => {
+        setImmediate( done, null, sequelize );
+      } )
+      .catch( done );
+
+  }
+
+  _initModels( setupDir, sequelize, done ) {
+
+    let modelsDir = Path.join( setupDir, 'models' );
+
+    async.waterfall( [
+      ( done ) => {
+        fs.readdir( modelsDir, done );
+      },
+      ( files, done ) => {
+
+        files = files
+          .filter( ( file ) => {
+            return typeof file === 'string' && file.match( /.+\.model\.js$/ );
+          } )
+          .map( ( file ) => {
+
+            let parts = file.split( '.' );
+
+            return {
+              path: Path.join( modelsDir, file ),
+              modelName: parts[ 0 ]
+            };
+
+          } );
+
+        try {
+
+          files.forEach( ( file ) => {
+
+            let loader = require( file.path );
+            let model = loader( Sequelize );
+
+            if ( !model.schema ) {
+              throw new Error( 'schema field required' );
+            }
+
+            sequelize.define( file.modelName, model.schema, model.options || {} );
+
+          } );
+
+        } catch ( e ) {
+          return done( e );
+        }
+
+        done();
+
+      }
+    ], done );
+
+  }
+
+  _normalizeConnectionConfig( connectionConfig ) {
+
+    return __( defaultConnectionConfig ).mixin( connectionConfig );
 
   }
 

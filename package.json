@@ -7,12 +7,13 @@
     "url": "git+ssh://git@github.com/BlueRival/stringstack-sequelize.git"
   },
   "scripts": {
-    "test": "docker pull mysql:5.7.22; ./node_modules/mocha/bin/mocha"
+    "test": "docker pull mysql:5.7.22; ./node_modules/mocha/bin/mocha test/main.test.js"
   },
   "dependencies": {
     "async": "2.6.1",
     "doublescore": "0.3.7",
-    "sequelize": "4.37.10"
+    "sequelize": "4.37.10",
+    "umzug": "2.0.1"
   },
   "devDependencies": {
     "@stringstack/core": "^0.1.2",
@@ -21,7 +22,6 @@
     "mysql2": "^1.5.3",
     "pg": "^7.4.3",
     "pg-hstore": "^2.3.2",
-    "sequelize-cli": "^4.0.0",
     "tedious": "^2.6.1",
     "wait-on": "^2.1.0"
   },
