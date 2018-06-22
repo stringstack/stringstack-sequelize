@@ -28,7 +28,7 @@
   "keywords": [
     "app",
     "framework",
-    "base"
+    "sequelize"
   ],
   "engines": {
     "node": ">=6.0.0"

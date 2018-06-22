@@ -205,7 +205,7 @@ class SequelizeComponent {
 
         files = files
           .filter( ( file ) => {
-            return typeof file === 'string' && file.match( /.+\.model\.js$/ );
+            return typeof file === 'string' && file.match( /^[a-zA-Z][a-zA-Z0-9]*\.model\.js$/ );
           } )
           .map( ( file ) => {
 
