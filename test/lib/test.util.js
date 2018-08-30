@@ -1,3 +1,5 @@
+'use strict';
+
 const assert = require( 'assert' );
 const async = require( 'async' );
 const SetupTestConfigComponent = require( './test.config' );
@@ -11,7 +13,7 @@ let dockerDependencies = [
     name: 'stringstack-sequelize-test-mysql',
     image: 'mysql:5.7.22',
     ports: {
-      "3306/tcp": "13306"
+      '3306/tcp': '13306'
     },
     envs: {
       MYSQL_ROOT_PASSWORD: 'test-password'

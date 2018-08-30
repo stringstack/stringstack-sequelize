@@ -72,7 +72,7 @@ module.exports = {
       ports = temp;
 
     } else {
-      ports = undefined;
+      ports = null;
     }
 
     async.waterfall( [
@@ -86,9 +86,12 @@ module.exports = {
 
         let imageRef = {
           Image: image,
-          name: name,
-          PortBindings: ports
+          name: name
         };
+
+        if ( ports ) {
+          imageRef.PortBindings = ports;
+        }
 
         envs = envs || {};
 

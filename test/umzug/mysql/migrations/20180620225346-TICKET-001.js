@@ -36,7 +36,7 @@ module.exports = {
 
   },
 
-  down: ( sequelize, Sequelize ) => {
+  down: ( sequelize ) => {
 
     let queryInterface = sequelize.getQueryInterface();
 

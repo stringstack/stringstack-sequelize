@@ -1,3 +1,5 @@
+'use strict';
+
 describe( 'stringstack', function () {
   describe( 'sequelize', function () {
 
