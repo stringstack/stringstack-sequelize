@@ -9,9 +9,6 @@
     "ecmaVersion": 2015,
     "sourceType": "script"
   },
-  "globals": {
-    "localRequire": true
-  },
   "rules": {
     "curly": "error",
     "strict": [
