@@ -3,7 +3,7 @@
 const assert = require( 'assert' );
 const async = require( 'async' );
 const SetupTestConfigComponent = require( './lib/test.config' );
-const StringStackCore = require( '@stringstack/core' );
+const StringStackCore = require( 'stringstack' );
 
 // lets you pull a component from the stack, do not use this pattern of accessing _loader outside of testing
 let getComponentNative = function ( app, targetPath ) {
@@ -26,7 +26,7 @@ describe( 'framework', function () {
           SetupTestConfigComponent.defaultConfig.lazyInit = true;
 
           // See documentation on how to use core to manage all your components:
-          // https://www.npmjs.com/package/@stringstack/core
+          // https://www.npmjs.com/package/stringstack
           let core = new StringStackCore();
 
           const App = core.createApp( {

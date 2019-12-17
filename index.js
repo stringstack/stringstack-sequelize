@@ -19,8 +19,8 @@ let defaultConnectionConfig = {
     host: 'localhost',
     port: 3306,
     dialect: 'mysql',
-    operatorsAliases: false, // default value in sequelize is true, which is also deprecated now... silly I know.
-    logging: false // another weird default override
+    // operatorsAliases: false, // default value in sequelize is true, which is also deprecated now... silly I know.
+    logging: false // another weird default that needs to be overridden
   },
   setupDir: null,
   applyMigrations: false
@@ -72,7 +72,7 @@ class SequelizeComponent {
       },
       ( done ) => {
         Object.keys( this._connectionPool ).forEach( ( name ) => {
-          delete this._connectionPool[ name ];
+          delete this._connectionPool[name];
         } );
         done();
       }
@@ -87,14 +87,14 @@ class SequelizeComponent {
     }
 
     if ( this._connectionPool.hasOwnProperty( connectionName ) ) {
-      return done( null, this._connectionPool[ connectionName ] );
+      return done( null, this._connectionPool[connectionName] );
     }
 
     if ( !this._config.connections.hasOwnProperty( connectionName ) ) {
       return done( new Error( 'connection identifier not found' ) );
     }
 
-    let config = __( defaultConnectionConfig ).mixin( this._config.connections[ connectionName ] );
+    let config = __( defaultConnectionConfig ).mixin( this._config.connections[connectionName] );
 
     let { database, username, password, options } = config;
 
@@ -113,7 +113,7 @@ class SequelizeComponent {
       },
       ( done ) => {
 
-        this._connectionPool[ connectionName ] = sequelize;
+        this._connectionPool[connectionName] = sequelize;
         done( null, sequelize );
 
       }
@@ -131,10 +131,10 @@ class SequelizeComponent {
 
   _initConnection( connectionName, connectionConfig, done ) {
 
-    if ( this._connectionModelsInitialized[ connectionName ] ) {
+    if ( this._connectionModelsInitialized[connectionName] ) {
       return done();
     }
-    this._connectionModelsInitialized[ connectionName ] = true;
+    this._connectionModelsInitialized[connectionName] = true;
 
     connectionConfig = this._normalizeConnectionConfig( connectionConfig );
 
@@ -178,7 +178,7 @@ class SequelizeComponent {
       },
       migrations: {
         path: Path.join( setupDir, 'migrations' ),
-        params: [ sequelize, Sequelize ],
+        params: [ sequelize, Sequelize ]
       },
       logging: function () {
         // TODO hook this to logging harness
@@ -213,7 +213,7 @@ class SequelizeComponent {
 
             return {
               path: Path.join( modelsDir, file ),
-              modelName: parts[ 0 ]
+              modelName: parts[0]
             };
 
           } );

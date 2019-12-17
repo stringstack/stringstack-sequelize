@@ -2,6 +2,7 @@
 
 const async = require( 'async' );
 const Docker = require( 'dockerode' );
+const mkdirp = require( 'mkdirp' );
 const waitOn = require( 'wait-on' );
 
 let docker = new Docker( { socketPath: '/var/run/docker.sock' } );
@@ -10,6 +11,8 @@ module.exports = {
   batchCreate: function ( dockerDependencies, done ) {
 
     async.eachSeries( dockerDependencies, ( dependency, done ) => {
+
+      dependency = dependency.options;
 
       async.series( [
         ( done ) => {
@@ -23,7 +26,7 @@ module.exports = {
             let resources = [];
 
             Object.keys( dependency.ports ).forEach( ( key ) => {
-              resources.push( 'tcp:127.0.0.1:' + dependency.ports[ key ] );
+              resources.push( 'tcp:127.0.0.1:' + dependency.ports[key] );
             } );
 
             waitOn( {
@@ -45,6 +48,8 @@ module.exports = {
   batchRemove: function ( dockerDependencies, done ) {
 
     async.eachSeries( dockerDependencies, ( dependency, done ) => {
+      dependency = dependency.options;
+
       this.remove( dependency.name, done );
     }, done );
 
@@ -54,6 +59,7 @@ module.exports = {
     let name = params.name;
     let image = params.image;
     let ports = params.ports;
+    let binds = params.binds;
     let envs = params.envs || {};
 
     if ( ports ) {
@@ -61,10 +67,10 @@ module.exports = {
       let temp = {};
 
       Object.keys( ports ).forEach( function ( key ) {
-        temp[ key ] = [
+        temp[key] = [
           {
             HostIp: '127.0.0.1',
-            HostPort: ports[ key ]
+            HostPort: ports[key]
           }
         ];
       } );
@@ -77,7 +83,7 @@ module.exports = {
 
     async.waterfall( [
       ( done ) => {
-        docker.pull( image, done );
+        docker.pull( image, null, done, null );
       },
       ( stream, done ) => {
         docker.modem.followProgress( stream, done );
@@ -102,7 +108,7 @@ module.exports = {
           imageRef.Env = [];
 
           envKeys.forEach( ( key ) => {
-            imageRef.Env.push( key + '=' + envs[ key ] );
+            imageRef.Env.push( key + '=' + envs[key] );
           } );
 
         }
@@ -142,7 +148,7 @@ module.exports = {
         containers.forEach( function ( container ) {
 
           if ( container && Array.isArray( container.Names ) && container.Names.length > 0 ) {
-            containerLookup[ container.Names[ 0 ].replace( /^\//, '' ) ] = container;
+            containerLookup[container.Names[0].replace( /^\//, '' )] = container;
           }
 
         } );
@@ -152,14 +158,12 @@ module.exports = {
       },
       function ( containerLookup, done ) {
 
-        // console.log( 'containerLookup', JSON.stringify( containerLookup, null, 4 ) );
-
         if ( !containerLookup.hasOwnProperty( name ) ) {
           return done();
         }
 
-        let containerContext = containerLookup[ name ],
-          container = docker.getContainer( containerLookup[ name ].Id );
+        let containerContext = containerLookup[name];
+        let container = docker.getContainer( containerLookup[name].Id );
 
         async.series( [
           function ( done ) {

@@ -256,7 +256,7 @@ migrations are applied.
 * It creates the table with the current schema, not the schema that existed before all migrations were created over the
 life of the code base.
 * Now StringStack/sequelize applies all the migrations to the model.
-* Maybe it would still be OK, maybe not. My guess is problems.
+* Maybe it would still be OK, maybe not. My guess is: problems.
 
 The conclusion is just copy and paste your schema for new models. After one schema change that initial migration to 
 create the table and your current model file will no longer be the same.
@@ -271,14 +271,23 @@ Run tests like this.
 npm test
 ```
 
+This library is tested against:
+
+* MySQL 5.7.28
+* MySQL 8.0.18
+
+Want to add more tests, or including for other dialects? Issue a pull request!
+
 # Version Log
 
-This is a log of which version of SequelizeJS is provided by each version of StringStack/snowflake.
+This is a log of which version of SequelizeJS and Umzug is provided by each version of StringStack/sequelize. 
 
 ## SequelizeJS
 
+@stringstack/sequelize@0.1.0 => sequalize@5.21.3
 @stringstack/sequelize@0.0.1 => sequalize@4.37.10
 
 ## Umzug
 
+@stringstack/sequelize@0.1.0 => umzug@2.2.0
 @stringstack/sequelize@0.0.1 => umzug@2.0.1

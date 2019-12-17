@@ -3,54 +3,79 @@
 const assert = require( 'assert' );
 const async = require( 'async' );
 const SetupTestConfigComponent = require( './test.config' );
-const StringStackCore = require( '@stringstack/core' );
+const StringStackCore = require( 'stringstack' );
 const docker = require( './docker.util' );
 const Sequelize = require( 'sequelize' );
+const Path = require( 'path' );
 
+const baseVarLib = Path.join( process.cwd(), 'var/lib' );
+
+// Field sin the options correspond to fields passed to https://docs.docker.com/engine/api/v1.37/#operation/ContainerCreate
 let dockerDependencies = [
   {
-    dialect: 'mysql',
-    name: 'stringstack-sequelize-test-mysql',
-    image: 'mysql:5.7.22',
-    ports: {
-      '3306/tcp': '13306'
-    },
-    envs: {
-      MYSQL_ROOT_PASSWORD: 'test-password'
+    connectionName: 'mysql_5.7',
+    options: {
+      name: 'stringstack-sequelize-test-mysql',
+      image: 'mysql:5.7.28',
+      ports: {
+        '3306/tcp': '13306'
+      },
+      envs: {
+        MYSQL_ROOT_PASSWORD: 'test-password'
+      }
+    }
+  },
+  {
+    connectionName: 'mysql_8.0',
+    options: {
+      name: 'stringstack-sequelize-test-mysql',
+      image: 'mysql:8.0.18',
+      ports: {
+        '3306/tcp': '13306'
+      },
+      envs: {
+        MYSQL_ROOT_PASSWORD: 'test-password'
+      }
     }
   }
 ];
 
 module.exports = {
-  dockerStart: function ( dialect, done ) {
+  dockerStart: function ( connectionName, done ) {
+
+    SetupTestConfigComponent.restoreDefaultConfig();
+
+    if ( !SetupTestConfigComponent.defaultConfig.connections.hasOwnProperty( connectionName ) ) {
+      return done( new Error( 'connection does not exist' ) );
+    }
+
+    let { database, username, password, options } = SetupTestConfigComponent.defaultConfig.connections[connectionName];
+
+    options.logging = false;
 
     async.series( [
       ( done ) => {
+
         // clean-up any straggling containers, possibly left over from previous failed tests
         docker.batchRemove( dockerDependencies, done );
       },
       ( done ) => {
-        docker.batchCreate( dockerDependencies.filter( ( dep ) => {
-          return !!dep && dep.dialect === dialect;
-        } ), done );
+
+        docker.batchCreate( dockerDependencies
+            .filter( dep => {
+              return !!dep && dep.connectionName === connectionName;
+            } )
+          , done );
+
       },
       ( done ) => {
 
         let ready = false;
 
-        SetupTestConfigComponent.restoreDefaultConfig();
-
-        if ( !SetupTestConfigComponent.defaultConfig.connections.hasOwnProperty( dialect ) ) {
-          return done( new Error( 'connection does not exist' ) );
-        }
-
-        let { database, username, password, options } = SetupTestConfigComponent.defaultConfig.connections[ dialect ];
-
-        options.operatorsAliases = false;
-        options.logging = false;
-
         // query against the DB until it is live
-        async.until( () => ready, ( done ) => {
+        async.whilst( ( done ) => {
+          done( null, !ready );
+        }, ( done ) => {
 
           let sequelize = new Sequelize( null, username || null, password || null, options || {} );
 
@@ -63,7 +88,7 @@ module.exports = {
                   ready = true;
                   done();
                 } )
-                .catch( () => {
+                .catch( ( e ) => {
                   setTimeout( done, 1000 );
                 } );
 
@@ -87,11 +112,13 @@ module.exports = {
   },
   dockerStop: function ( done ) {
 
-    async.series( [
-      ( done ) => {
-        docker.batchRemove( dockerDependencies, done );
-      }
-    ], done );
+    return done();
+
+    // async.series( [
+    //   ( done ) => {
+    //     docker.batchRemove( dockerDependencies, done );
+    //   }
+    // ], done );
 
   },
   getComponentNative: function ( app, targetPath ) {
@@ -227,6 +254,8 @@ module.exports = {
             done( e );
           } );
         }
+
+        return;
 
       }
 
