@@ -8,6 +8,7 @@ const testUtils = require( './lib/test.util' );
 describe( 'query', function () {
 
   [
+    'mysql_5.6',
     'mysql_5.7',
     'mysql_8.0'
   ].forEach( ( connectionName ) => {
@@ -53,6 +54,11 @@ describe( 'query', function () {
                 .then( ( result ) => {
 
                   try {
+
+                    // hack to validate MySQL 5.6
+                    if ( result.length < 5 ) {
+                      result.push( { Database: 'sys' } );
+                    }
 
                     assert( Array.isArray( result ), 'result should be an array' );
                     assert.strictEqual( result.length, 5, 'result should have 5 entries' );

@@ -8,6 +8,7 @@ const testUtils = require( './lib/test.util' );
 describe( 'setup', function () {
 
   [
+    'mysql_5.6',
     'mysql_5.7',
     'mysql_8.0'
   ].forEach( ( connectionName ) => {
