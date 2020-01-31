@@ -1,7 +1,10 @@
 # StringStack Sequelize
 
 StringStack/sequelize is a component container for SequelizeJS that allows you to easily include the library in your 
-StringStack application.
+[StringStack](https://www.npmjs.com/package/stringstack) application.
+
+StringStack/sequelize also includes the sequalize utility [umzug](https://www.npmjs.com/package/umzug) to aid with 
+schema migrations. 
 
 # Installation
 
@@ -25,8 +28,9 @@ $ npm install --save tedious // MSSQL
 
 # Configuration
 
-StringStack/sequelize looks for configuration in the nconf container provided by StringStack/core. Store the 
-configuration in nconf at the path ```stringstack:sequelize```.
+StringStack/sequelize looks for configuration in the nconf container provided by 
+[StringStack](https://www.npmjs.com/package/stringstack). Store the configuration in nconf at the path 
+```stringstack:sequelize```.
 
 ```json
 {
@@ -273,8 +277,9 @@ npm test
 
 This library is tested against:
 
-* MySQL 5.7.28
-* MySQL 8.0.18
+* MySQL 5.6.47
+* MySQL 5.7.29
+* MySQL 8.0.19
 
 Want to add more tests, or including for other dialects? Issue a pull request!
 
@@ -284,10 +289,18 @@ This is a log of which version of SequelizeJS and Umzug is provided by each vers
 
 ## SequelizeJS
 
+```text
+@stringstack/sequelize@0.1.2 => sequalize@5.21.3
+@stringstack/sequelize@0.1.1 => sequalize@5.21.3
 @stringstack/sequelize@0.1.0 => sequalize@5.21.3
 @stringstack/sequelize@0.0.1 => sequalize@4.37.10
+```
 
 ## Umzug
 
+```text
+@stringstack/sequelize@0.1.2 => umzug@2.2.0
+@stringstack/sequelize@0.1.1 => umzug@2.2.0
 @stringstack/sequelize@0.1.0 => umzug@2.2.0
 @stringstack/sequelize@0.0.1 => umzug@2.0.1
+```

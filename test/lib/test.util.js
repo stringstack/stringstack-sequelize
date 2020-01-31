@@ -10,13 +10,26 @@ const Path = require( 'path' );
 
 const baseVarLib = Path.join( process.cwd(), 'var/lib' );
 
-// Field sin the options correspond to fields passed to https://docs.docker.com/engine/api/v1.37/#operation/ContainerCreate
+// Fields in the options correspond to fields passed to https://docs.docker.com/engine/api/v1.37/#operation/ContainerCreate
 let dockerDependencies = [
+  {
+    connectionName: 'mysql_5.6',
+    options: {
+      name: 'stringstack-sequelize-test-mysql',
+      image: 'mysql:5.6.47',
+      ports: {
+        '3306/tcp': '13306'
+      },
+      envs: {
+        MYSQL_ROOT_PASSWORD: 'test-password'
+      }
+    }
+  },
   {
     connectionName: 'mysql_5.7',
     options: {
       name: 'stringstack-sequelize-test-mysql',
-      image: 'mysql:5.7.28',
+      image: 'mysql:5.7.29',
       ports: {
         '3306/tcp': '13306'
       },
@@ -29,7 +42,7 @@ let dockerDependencies = [
     connectionName: 'mysql_8.0',
     options: {
       name: 'stringstack-sequelize-test-mysql',
-      image: 'mysql:8.0.18',
+      image: 'mysql:8.0.19',
       ports: {
         '3306/tcp': '13306'
       },
@@ -112,13 +125,11 @@ module.exports = {
   },
   dockerStop: function ( done ) {
 
-    return done();
-
-    // async.series( [
-    //   ( done ) => {
-    //     docker.batchRemove( dockerDependencies, done );
-    //   }
-    // ], done );
+    async.series( [
+      ( done ) => {
+        docker.batchRemove( dockerDependencies, done );
+      }
+    ], done );
 
   },
   getComponentNative: function ( app, targetPath ) {

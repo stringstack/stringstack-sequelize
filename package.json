@@ -1,7 +1,7 @@
 {
   "name": "@stringstack/sequelize",
   "description": "StringStack/sequelize is a component container for SequelizeJS that allows you to easily include the library in your StringStack application.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/BlueRival/stringstack-sequelize.git"
@@ -10,22 +10,22 @@
     "test": "./node_modules/mocha/bin/mocha --exit --bail test/main.test.js"
   },
   "dependencies": {
-    "async": "3.1.0",
+    "async": "3.1.1",
     "doublescore": "1.0.0",
     "sequelize": "5.21.3",
     "umzug": "2.2.0"
   },
   "devDependencies": {
-    "@types/mocha": "^5.2.7",
+    "@types/mocha": "^7.0.1",
     "dockerode": "^3.0.2",
-    "mkdirp": "^0.5.1",
-    "mocha": "^6.2.2",
-    "mysql2": "^2.0.2",
-    "pg": "^7.14.0",
+    "mkdirp": "^1.0.3",
+    "mocha": "^7.0.1",
+    "mysql2": "^2.1.0",
+    "pg": "^7.18.1",
     "pg-hstore": "^2.3.3",
-    "stringstack": "^0.4.4",
-    "tedious": "^6.6.2",
-    "wait-on": "^3.3.0"
+    "stringstack": "^0.5.0",
+    "tedious": "^8.0.1",
+    "wait-on": "^4.0.0"
   },
   "keywords": [
     "app",
