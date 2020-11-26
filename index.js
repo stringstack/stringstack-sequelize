@@ -80,6 +80,21 @@ class SequelizeComponent {
 
     }
 
+    _getSetupDir( connectionConfig ) {
+
+        if ( typeof connectionConfig.setupDir !== 'string' ) {
+            throw new Error( 'setupDir must be a string' );
+        }
+
+        let setupDir = connectionConfig.setupDir.trim();
+        if ( setupDir.match( /^\./ ) ) {
+            setupDir = Path.join( process.cwd(), setupDir );
+        }
+
+        return Path.normalize( setupDir );
+
+    }
+
     getConnection( connectionName, done = null ) {
 
         if ( typeof done !== 'function' ) {
@@ -149,23 +164,18 @@ class SequelizeComponent {
             return done();
         }
 
-        let setupDir = connectionConfig.setupDir.trim();
-        if ( setupDir.match( /^\./ ) ) {
-            setupDir = Path.join( process.cwd(), setupDir );
-        }
-        setupDir = Path.normalize( setupDir );
+        const setupDir = this._getSetupDir( connectionConfig );
 
         async.waterfall( [
-            ( done ) => {
-                this.getConnection( connectionName, done );
-            },
-            ( sequelize, done ) => {
+            async () => {
+
+                const sequelize = await this.getConnection( connectionName );
 
                 if ( connectionConfig.applyMigrations ) {
-                    this._initMigrations( setupDir, sequelize, done );
-                } else {
-                    setImmediate( done, null, sequelize );
+                    await this._initMigrations( setupDir, sequelize );
                 }
+
+                return sequelize;
 
             },
             ( sequelize, done ) => {
@@ -175,7 +185,63 @@ class SequelizeComponent {
 
     }
 
-    _initMigrations( setupDir, sequelize, done ) {
+    applyMigrations( connectionName, done = null ) {
+
+        if ( typeof done !== 'function' ) {
+
+            done = e => {
+
+                return new Promise( ( resolve, reject ) => {
+                    if ( e ) {
+                        return reject( e );
+                    }
+
+                    resolve();
+                } );
+
+            }
+        }
+
+        if ( !this._config ) {
+            return done( new Error( 'not initialized' ) );
+        }
+
+        if ( !this._config.connections ) {
+            return done( new Error( 'config missing connections' ) );
+        }
+
+        if ( !this._config.connections[connectionName] ) {
+            return done( new Error( 'config missing connection for ' + connectionName ) );
+        }
+
+        return this._applyMigration( connectionName, this._config.connections[connectionName] )
+            .then( () => {
+                done();
+            } )
+            .catch( done );
+
+    }
+
+    async _applyMigration( connectionName, connectionConfig ) {
+
+        // don't apply this migration if it already happened at init
+        if ( connectionConfig.applyMigrations ) {
+            throw new Error( '' );
+        }
+
+        const sequelize = await this.getConnection( connectionName );
+
+        const setupDir = this._getSetupDir( connectionConfig );
+
+        await this._initMigrations( setupDir, sequelize );
+
+    }
+
+    _initMigrations( setupDir, sequelize ) {
+
+        if ( typeof setupDir !== 'string' ) {
+            throw new Error( 'setupDir must be a string' );
+        }
 
         let umzug = new Umzug( {
             storage: 'sequelize',
@@ -192,15 +258,15 @@ class SequelizeComponent {
             }
         } );
 
-        umzug.up()
-            .then( () => {
-                setImmediate( done, null, sequelize );
-            } )
-            .catch( done );
+        return umzug.up();
 
     }
 
     _initModels( setupDir, sequelize, done ) {
+
+        if ( typeof setupDir !== 'string' ) {
+            return done( new Error( 'setupDir must be a string' ) );
+        }
 
         let modelsDir = Path.join( setupDir, 'models' );
 
