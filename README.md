@@ -269,6 +269,8 @@ create the table and your current model file will no longer be the same.
 
 You should do test driven development. Why? http://lmgtfy.com/?q=why+do+test+driven+development
 
+Install Docker before running tests. https://docs.docker.com/get-docker
+
 Run tests like this.
 
 ```bash
