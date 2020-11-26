@@ -6,9 +6,6 @@ const SetupTestConfigComponent = require( './test.config' );
 const StringStackCore = require( 'stringstack' );
 const docker = require( './docker.util' );
 const Sequelize = require( 'sequelize' );
-const Path = require( 'path' );
-
-const baseVarLib = Path.join( process.cwd(), 'var/lib' );
 
 // Fields in the options correspond to fields passed to https://docs.docker.com/engine/api/v1.37/#operation/ContainerCreate
 let dockerDependencies = [
@@ -53,12 +50,16 @@ let dockerDependencies = [
   }
 ];
 
+function hasOwn( obj, field ) {
+  return Object.prototype.hasOwnProperty.call( obj, field );
+}
+
 module.exports = {
   dockerStart: function ( connectionName, done ) {
 
     SetupTestConfigComponent.restoreDefaultConfig();
 
-    if ( !SetupTestConfigComponent.defaultConfig.connections.hasOwnProperty( connectionName ) ) {
+    if ( !hasOwn( SetupTestConfigComponent.defaultConfig.connections, connectionName ) ) {
       return done( new Error( 'connection does not exist' ) );
     }
 
@@ -74,11 +75,9 @@ module.exports = {
       },
       ( done ) => {
 
-        docker.batchCreate( dockerDependencies
-            .filter( dep => {
-              return !!dep && dep.connectionName === connectionName;
-            } )
-          , done );
+        docker.batchCreate( dockerDependencies.filter( dep => {
+          return !!dep && dep.connectionName === connectionName;
+        } ), done );
 
       },
       ( done ) => {
@@ -101,7 +100,7 @@ module.exports = {
                   ready = true;
                   done();
                 } )
-                .catch( ( e ) => {
+                .catch( () => {
                   setTimeout( done, 1000 );
                 } );
 
