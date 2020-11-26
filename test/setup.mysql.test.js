@@ -274,6 +274,62 @@ describe( 'setup', function () {
 
       } );
 
+      it( 'should fail to apply migrations manually with promise if applyMigrations enabled in config', function ( done ) {
+
+        this.timeout( 1000 );
+
+        testConfig.restoreDefaultConfig();
+        testConfig.defaultConfig.connections[connectionName].setupDir = './test/umzug/mysql';
+        testConfig.defaultConfig.connections[connectionName].applyMigrations = true;
+
+        testUtils.generateQueryTest( function ( component, done ) {
+
+          async.waterfall( [
+            async () => {
+
+              try {
+                await component.applyMigrations( connectionName );
+              } catch ( e ) {
+                assert( e, 'should return error' );
+                assert.strictEqual( e.message, 'can not manually apply migrations if applyMigrations: true in config', 'error should match' );
+                return;
+              }
+
+              throw new Error( 'should have thrown error' );
+            }
+          ], done );
+
+        }, done );
+
+      } );
+
+      it( 'should fail to apply migrations manually with callback if applyMigrations enabled in config', function ( done ) {
+
+        this.timeout( 1000 );
+
+        testConfig.restoreDefaultConfig();
+        testConfig.defaultConfig.connections[connectionName].setupDir = './test/umzug/mysql';
+        testConfig.defaultConfig.connections[connectionName].applyMigrations = true;
+
+        testUtils.generateQueryTest( function ( component, done ) {
+
+          component.applyMigrations( connectionName, ( e ) => {
+
+            if ( e ) {
+              assert( e, 'should return error' );
+              assert.strictEqual( e.message, 'can not manually apply migrations if applyMigrations: true in config', 'error should match' );
+              return done();
+            }
+
+            done( new Error( 'should have thrown error' ) );
+
+
+          } );
+
+        }, done );
+
+      } );
+
 
       it( 'should load models', function ( done ) {
 

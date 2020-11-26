@@ -232,7 +232,7 @@ class SequelizeComponent {
 
     // don't apply this migration if it already happened at init
     if ( connectionConfig.applyMigrations ) {
-      throw new Error( '' );
+      throw new Error( 'can not manually apply migrations if applyMigrations: true in config' );
     }
 
     const sequelize = await this.getConnection( connectionName );
