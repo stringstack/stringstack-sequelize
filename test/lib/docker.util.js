@@ -2,10 +2,13 @@
 
 const async = require( 'async' );
 const Docker = require( 'dockerode' );
-const mkdirp = require( 'mkdirp' );
 const waitOn = require( 'wait-on' );
 
 let docker = new Docker( { socketPath: '/var/run/docker.sock' } );
+
+function hasOwn( obj, field ) {
+  return Object.prototype.hasOwnProperty.call( obj, field );
+}
 
 module.exports = {
   batchCreate: function ( dockerDependencies, done ) {
@@ -59,7 +62,6 @@ module.exports = {
     let name = params.name;
     let image = params.image;
     let ports = params.ports;
-    let binds = params.binds;
     let envs = params.envs || {};
 
     if ( ports ) {
@@ -158,7 +160,7 @@ module.exports = {
       },
       function ( containerLookup, done ) {
 
-        if ( !containerLookup.hasOwnProperty( name ) ) {
+        if ( !hasOwn( containerLookup, name ) ) {
           return done();
         }
 
