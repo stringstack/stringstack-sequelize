@@ -3,6 +3,8 @@
 describe( 'stringstack', function () {
   describe( 'sequelize', function () {
 
+    require( './eslint.test.js' );
+
     describe( 'general', function () {
       require( './general.test.js' );
     } );
