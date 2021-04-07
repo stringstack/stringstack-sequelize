@@ -329,6 +329,10 @@ class SequelizeComponent {
 
   }
 
+  getLib(){
+    return Sequelize;
+  }
+
 
 }
 
