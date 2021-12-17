@@ -39,6 +39,7 @@ class SequelizeComponent {
     this._connectionModelsInitialized = {};
     this._config = null;
     this._connectionPool = {};
+    this._logger = deps.get( 'logger' );
 
   }
 
@@ -101,92 +102,78 @@ class SequelizeComponent {
 
   getConnection( connectionName, done = null ) {
 
-    if ( typeof done !== 'function' ) {
+    return async.waterfall( [
+      async () => {
 
-      done = ( e, connection ) => {
+        if ( !this._config ) {
+          throw new Error( 'not initialized' );
+        }
 
-        return new Promise( ( resolve, reject ) => {
-          if ( e ) {
-            return reject( e );
-          }
+        if ( hasOwn( this._connectionPool, connectionName ) ) {
+          return this._connectionPool[connectionName];
+        }
 
-          resolve( connection );
-        } );
+        if ( !hasOwn( this._config.connections, connectionName ) ) {
+          throw new Error( 'connection identifier not found' );
+        }
 
-      };
+        let config = __( defaultConnectionConfig ).mixin( this._config.connections[connectionName] );
 
-    }
+        let { database, username, password, options } = config;
 
-    if ( !this._config ) {
-      return done( new Error( 'not initialized' ) );
-    }
+        let sequelize = new Sequelize( database || null, username || null, password || null, options || {} );
 
-    if ( hasOwn( this._connectionPool, connectionName ) ) {
-      return done( null, this._connectionPool[connectionName] );
-    }
-
-    if ( !hasOwn( this._config.connections, connectionName ) ) {
-      return done( new Error( 'connection identifier not found' ) );
-    }
-
-    let config = __( defaultConnectionConfig ).mixin( this._config.connections[connectionName] );
-
-    let { database, username, password, options } = config;
-
-    let sequelize = new Sequelize( database || null, username || null, password || null, options || {} );
-
-    return sequelize
-      .authenticate()
-      .then( () => {
+        await sequelize.authenticate();
 
         this._connectionPool[connectionName] = sequelize;
 
-        return done( null, sequelize );
+        return sequelize;
 
-      } )
-      .catch( done );
+      }
+    ], done );
 
   }
 
   _initAllConnections( done ) {
 
-    async.eachOfSeries( this._config.connections, ( connectionConfig, connectionName, done ) => {
-      this._initConnection( connectionName, connectionConfig, done );
+    async.eachOfSeries( this._config.connections, async ( connectionConfig, connectionName ) => {
+      await this._initConnection( connectionName, connectionConfig );
     }, done );
 
   }
 
-  _initConnection( connectionName, connectionConfig, done ) {
+  async _initConnection( connectionName, connectionConfig ) {
 
     if ( this._connectionModelsInitialized[connectionName] ) {
-      return done();
+      return;
     }
     this._connectionModelsInitialized[connectionName] = true;
+
+    this._logger( 'info', `Setting up connection: ${ connectionName }` );
 
     connectionConfig = this._normalizeConnectionConfig( connectionConfig );
 
     if ( typeof connectionConfig.setupDir !== 'string' || connectionConfig.setupDir.trim().length < 1 ) {
-      return done();
+      return;
     }
 
     const setupDir = this._getSetupDir( connectionConfig );
 
-    async.waterfall( [
-      async () => {
+    this._logger( 'info', `Connection ${ connectionName } uses setup directory: ${ setupDir }` );
 
-        const sequelize = await this.getConnection( connectionName );
+    const sequelize = await this.getConnection( connectionName );
 
-        if ( connectionConfig.applyMigrations ) {
-          await this._initMigrations( setupDir, sequelize );
-        }
+    this._logger( 'info', `Initializing models for connection ${ connectionName }` );
+    await this._initModels( setupDir, sequelize );
+    this._logger( 'info', `Completed initializing models for connection ${ connectionName }` );
 
-        return sequelize;
-
-      },
-      ( sequelize, done ) => {
-        this._initModels( setupDir, sequelize, done );
-      }
-    ], done );
+    if ( connectionConfig.applyMigrations ) {
+      this._logger( 'info', `Applying migrations for connection ${ connectionName }` );
+      await this._initMigrations( setupDir, sequelize );
+      this._logger( 'info', `Completed applying migrations for connection ${ connectionName }` );
+    } else {
+      this._logger( 'info', `Auto-apply migrations disabled for connection ${ connectionName }` );
+    }
 
   }
 
@@ -239,7 +226,9 @@ class SequelizeComponent {
 
     const setupDir = this._getSetupDir( connectionConfig );
 
+    this._logger( 'info', `Applying migrations for connection ${ connectionName }` );
     await this._initMigrations( setupDir, sequelize );
+    this._logger( 'info', `Completed applying migrations for connection ${ connectionName }` );
 
   }
 
@@ -248,6 +237,8 @@ class SequelizeComponent {
     if ( typeof setupDir !== 'string' ) {
       throw new Error( 'setupDir must be a string' );
     }
+
+    const self = this;
 
     let umzug = new Umzug( {
       storage: 'sequelize',
@@ -259,8 +250,8 @@ class SequelizeComponent {
         path: Path.join( setupDir, 'migrations' ),
         params: [ sequelize, Sequelize ]
       },
-      logging: function () {
-        // TODO hook this to logging harness
+      logging: function ( message ) {
+        self._logger( 'info', 'Migration log:', message );
       }
     } );
 
@@ -268,15 +259,15 @@ class SequelizeComponent {
 
   }
 
-  _initModels( setupDir, sequelize, done ) {
+  _initModels( setupDir, sequelize ) {
 
     if ( typeof setupDir !== 'string' ) {
-      return done( new Error( 'setupDir must be a string' ) );
+      throw new Error( 'setupDir must be a string' );
     }
 
     let modelsDir = Path.join( setupDir, 'models' );
 
-    async.waterfall( [
+    return async.waterfall( [
       ( done ) => {
         fs.readdir( modelsDir, done );
       },
@@ -304,11 +295,15 @@ class SequelizeComponent {
             let loader = require( file.path );
             let model = loader( Sequelize );
 
+            this._logger( 'info', `Initializing model ${ file.modelName } in ${ file.path }` );
+
             if ( !model.schema ) {
               throw new Error( 'schema field required' );
             }
 
             sequelize.define( file.modelName, model.schema, model.options || {} );
+
+            this._logger( 'info', `Finished initializing model ${ file.modelName } in ${ file.path }` );
 
           } );
 
@@ -319,7 +314,7 @@ class SequelizeComponent {
         done();
 
       }
-    ], done );
+    ] );
 
   }
 
@@ -329,7 +324,7 @@ class SequelizeComponent {
 
   }
 
-  getLib(){
+  getLib() {
     return Sequelize;
   }
 
