@@ -1,7 +1,7 @@
 {
   "name": "@stringstack/sequelize",
   "description": "StringStack/sequelize is a component container for SequelizeJS that allows you to easily include the library in your StringStack application.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/BlueRival/stringstack-sequelize.git"
